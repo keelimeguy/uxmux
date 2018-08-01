@@ -9,7 +9,7 @@ LDFLAGS = -s -v -nodefaultlibs -lc -ldl -lstdc++ -lgcc_s -Wl,-t
 LDFLAGS += -Llib/litehtml/ -llitehtml `pkg-config --libs freetype2` `pkg-config --libs libpng`
 
 all:
-	if ( \
+	@if ( \
 		if [ -f "lib/litehtml/liblitehtml.a" ] ; then : ; \
 		else \
 			cd lib/litehtml && \
@@ -22,17 +22,17 @@ all:
 	) ; then : ; else echo "FAILURE: Running 'make clean_all && make' may solve the problem." ; fi
 
 extra:
-	gcc -fpie -c extra.c -o extra.o
-	gcc -o extra.elf -Wl,-pie,-E extra.o
+	@gcc -fpie -c extra.c -o extra.o
+	@gcc -o extra.elf -Wl,-pie,-E extra.o
 
 
 
 clean_extra:
-	if [ -f extra.o ] ; then rm extra.o ; fi
-	if [ -f extra.elf ] ; then rm extra.elf ; fi
+	@if [ -f extra.o ] ; then rm extra.o ; fi
+	@if [ -f extra.elf ] ; then rm extra.elf ; fi
 
 clean_litehtml:
-	cd lib/litehtml && \
+	@cd lib/litehtml && \
 	(make clean || :) && \
 	if [ -f "CMakeCache.txt" ] ; then rm CMakeCache.txt ; fi && \
 	if [ -f "cmake_install.cmake" ] ; then rm cmake_install.cmake ; fi && \
@@ -40,16 +40,16 @@ clean_litehtml:
 	cd ../..
 
 clean:
-	if [ -f *.o ] ; then rm *.o ; fi
-	if [ -f build/uxmux ] ; then rm build/uxmux ; fi
-	if [ -f build/uxmux.map ] ; then rm build/uxmux.map ; fi
+	@if [ -f *.o ] ; then rm *.o ; fi
+	@if [ -f build/uxmux ] ; then rm build/uxmux ; fi
+	@if [ -f build/uxmux.map ] ; then rm build/uxmux.map ; fi
 
 clean_all:
-	if [ -f *.o ] ; then rm *.o ; fi
-	if [ -f extra.elf ] ; then rm extra.elf ; fi
-	if [ -f build/uxmux ] ; then rm build/uxmux ; fi
-	if [ -f build/uxmux.map ] ; then rm build/uxmux.map ; fi
-	cd lib/litehtml && \
+	@if [ -f *.o ] ; then rm *.o ; fi
+	@if [ -f extra.elf ] ; then rm extra.elf ; fi
+	@if [ -f build/uxmux ] ; then rm build/uxmux ; fi
+	@if [ -f build/uxmux.map ] ; then rm build/uxmux.map ; fi
+	@cd lib/litehtml && \
 	(make clean || :) && \
 	if [ -f "CMakeCache.txt" ] ; then rm CMakeCache.txt ; fi && \
 	if [ -f "cmake_install.cmake" ] ; then rm cmake_install.cmake ; fi && \
@@ -71,7 +71,7 @@ AS = ${CROSS}-as
 CXX = ${CROSS}-g++
 
 cross_compile:
-	if [ -d "${ZLIB_DIR}" ] && [ -d "${PNG_DIR}" ] && [ -d "${FREETYPE_DIR}" ] ; then \
+	@if [ -d "${ZLIB_DIR}" ] && [ -d "${PNG_DIR}" ] && [ -d "${FREETYPE_DIR}" ] ; then \
 		if [ -d "lib/litehtml/final/" ]	; then : ; \
 		else \
 			cd lib/litehtml && \
@@ -106,5 +106,5 @@ cross_compile:
 	fi
 
 clean_cross:
-	if [ -d final/ ] ; then rm -r final/ ; fi
-	if [ -d lib/litehtml/final/ ] ; then rm -r lib/litehtml/final/ ; fi
+	@if [ -d final/ ] ; then rm -r final/ ; fi
+	@if [ -d lib/litehtml/final/ ] ; then rm -r lib/litehtml/final/ ; fi

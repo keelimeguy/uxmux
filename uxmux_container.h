@@ -746,7 +746,7 @@ public:
 			return reinterpret_cast<litehtml::uint_ptr>(&m_fonts[name+mod+std::to_string(decoration)+std::to_string(size)]);
 
 		/* If no font name given, try to load default font */
-		} else if (!load_font(&m_default_font)) {
+		} else if (!load_font(&m_default_font))
 			throw std::invalid_argument("CRITICAL FAIL: no fonts found");
 
 		return reinterpret_cast<litehtml::uint_ptr>(&m_default_font);
