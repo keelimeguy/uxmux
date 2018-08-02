@@ -15,7 +15,7 @@
 
 /* BEWARE: It seems that these can change on reboot..
 		also note, they might be the same file */
-#define MOUSE_MOVE_FILE "/dev/input/event7"
+#define MOUSE_MOVE_FILE "/dev/input/event1"
 #define MOUSE_CLICK_FILE "/dev/input/mouse0"
 
 #define FRAMEBUFFER_FILE "/dev/fb0"
@@ -125,8 +125,9 @@ litehtml::uint_ptr get_drawable(struct fb_fix_screeninfo *_finfo, struct fb_var_
 			else they are treated as change in position
 */
 /* Handles a mouse input
-	TODO: This will be made obsolete as we change over to touch screen input, unless the final user would use a mouse */
-unsigned char handle_mouse(int mcf, int mmf, int* x_ret, int* y_ret, unsigned char last_click) {
+	TODO: All this can be improved and adapted..
+		either way this may be made obsolete as we change over to touch screen input, unless the final user would use a mouse */
+unsigned char handle_mouse(int mcf, int mmf, int* x_ret, int* y_ret, unsigned char last_click, int width, int height) {
 	if (!mcf || !mmf) return MOUSE_INVALID;
 
 	fd_set read_fds, write_fds, except_fds;
@@ -136,12 +137,6 @@ unsigned char handle_mouse(int mcf, int mmf, int* x_ret, int* y_ret, unsigned ch
 	unsigned char click_ie[3] {last_click,0,0};
 	bool y_flag(false), x_flag(false);
 	int x(*x_ret), y(*y_ret);
-
-	/* The width and height of the target screen
-		TODO: probably should have just used dimensions
-			from uxmux_container's m_client_width/height */
-	#define TARGET_X 800.0f
-	#define TARGET_Y 600.0f
 
 	/* Screen correction dimmensions, very unique to keelins VM screen..
 		Only used in exact mouse format (MOUSE_ABS) */
@@ -154,6 +149,9 @@ unsigned char handle_mouse(int mcf, int mmf, int* x_ret, int* y_ret, unsigned ch
 
 	#define MOUSE_ABS 3
 	#define MOUSE_REL 2
+
+	// Speed is only factored in REL case
+	#define SPEED 4
 
 	/* Initialize file descriptor sets and set timeout */
 	#define fd_ready_select(fd, sec, usec) \
@@ -184,73 +182,42 @@ unsigned char handle_mouse(int mcf, int mmf, int* x_ret, int* y_ret, unsigned ch
 	bool y_exact = false, x_exact = false;
 
 	/* Update mouse movement */
-	/* TODO: The extra while loop pass through is not needed as instead of `while (!move_ie.type)` we can just do
-			`while (move_ie.type!=MOUSE_ABS && move_ie.type!=MOUSE_REL)` from the start (probably in `do while` loop).
-				Not making the change now as I don't have time to test, in case it breaks something */
-	if (select(mmf + 1, &read_fds, &write_fds, &except_fds, &timeout) == 1) {
-		read(mmf, &move_ie, sizeof(struct input_event));
-
-		/* Read file until we get non-zero type info */
-		/* TODO: Are we always guaranteed a non-zero type somewhere in the file?
-			or could this be safer in a select statement also? (i.e safe from while loop freeze) */
-		while (!move_ie.type)
+	while (!y_flag || !x_flag) {
+		if (select(mmf + 1, &read_fds, &write_fds, &except_fds, &timeout) == 1) {
 			read(mmf, &move_ie, sizeof(struct input_event));
 
-		// printf("time %ld.%06ld\ttype %d\tcode %d\tvalue %d\n", move_ie.time.tv_sec, move_ie.time.tv_usec, move_ie.type, move_ie.code, move_ie.value);
-		/* Record x or y value if valid type */
-		if ((move_ie.type==MOUSE_ABS || move_ie.type==MOUSE_REL) && move_ie.code==1) {
-			y = move_ie.value;
-			y_flag = true;
-			y_exact = (move_ie.type==MOUSE_ABS);
-		} else if ((move_ie.type==MOUSE_ABS || move_ie.type==MOUSE_REL) && !move_ie.code) {
-			x = move_ie.value;
-			x_flag = true;
-			x_exact = (move_ie.type==MOUSE_ABS);
-		}
+			// printf("time %ld.%06ld\ttype %d\tcode %d\tvalue %d\n", move_ie.time.tv_sec, move_ie.time.tv_usec, move_ie.type, move_ie.code, move_ie.value);
+			/* Record x or y value if valid type */
+			if ((move_ie.type==MOUSE_ABS || move_ie.type==MOUSE_REL && !y_flag) && move_ie.code==1) {
+				y = move_ie.value;
+				y_flag = true;
+				y_exact = (move_ie.type==MOUSE_ABS);
+			} else if ((move_ie.type==MOUSE_ABS || move_ie.type==MOUSE_REL && !x_flag) && !move_ie.code) {
+				x = move_ie.value;
+				x_flag = true;
+				x_exact = (move_ie.type==MOUSE_ABS);
+			}
+
+		} else break;
+
 		/* Set timeout to 1.0 microseconds */
 		fd_ready_select(mmf, 0, 1);
-		/* Keep trying until a valid type is found (or until select timeout) */
-		while (!y_flag || !x_flag) {
-			if (select(mmf + 1, &read_fds, &write_fds, &except_fds, &timeout) == 1) {
-				read(mmf, &move_ie, sizeof(struct input_event));
+	}
 
-				/* Filter out all non valid types */
-				while (move_ie.type!=MOUSE_ABS && move_ie.type!=MOUSE_REL) {
-					/* Set timeout to 1.0 microseconds */
-					fd_ready_select(mmf, 0, 1);
-					if (select(mmf + 1, &read_fds, &write_fds, &except_fds, &timeout) == 1)
-						read(mmf, &move_ie, sizeof(struct input_event));
-					else break;
-				}
-				// printf("time %ld.%06ld\ttype %d\tcode %d\tvalue %d\n", move_ie.time.tv_sec, move_ie.time.tv_usec, move_ie.type, move_ie.code, move_ie.value);
-				/* Record x or y value if valid type */
-				if (move_ie.type && move_ie.code==1 && !y_flag) {
-					y = move_ie.value;
-					y_flag = true;
-					y_exact = (move_ie.type==MOUSE_ABS);
-				} else if (move_ie.type && !move_ie.code && !x_flag) {
-					x = move_ie.value;
-					x_flag = true;
-					x_exact = (move_ie.type==MOUSE_ABS);
-				}
-				/* Set timeout to 1.0 microseconds */
-				fd_ready_select(mmf, 0, 1);
-			} else break;
-		}
-		/* Set timeout to 10.0 microseconds */
-		fd_ready_select(mmf, 0, 10);
-		/* Clear out extra data in file
-			TODO:
-			WARNING: (Potential to freeze if mouse file gets data faster than this can dump,
-				but this whole function isn't needed in final product anyways,
-				as we will switch to touch input, so not worried now) */
-		while(1) {
-			if (select(mmf + 1, &read_fds, &write_fds, &except_fds, &timeout) == 1) {
-				read(mmf, &move_ie, sizeof(struct input_event));
-				/* Set timeout to 10.0 microseconds */
-				fd_ready_select(mmf, 0, 10);
-			} else break;
-		}
+	/* Set timeout to 10.0 microseconds */
+	fd_ready_select(mmf, 0, 10);
+	/* Clear out extra data in file
+		TODO:
+		WARNING: (Potential to freeze if mouse file gets data faster than this can dump,
+			but this whole function isn't needed in final product anyways,
+			as we will switch to touch input, so not worried now) */
+	while(1) {
+		if (select(mmf + 1, &read_fds, &write_fds, &except_fds, &timeout) == 1) {
+			read(mmf, &move_ie, sizeof(struct input_event));
+			/* Set timeout to 10.0 microseconds */
+			printf("dump time %ld.%06ld\ttype %d\tcode %d\tvalue %d\n", move_ie.time.tv_sec, move_ie.time.tv_usec, move_ie.type, move_ie.code, move_ie.value);
+			fd_ready_select(mmf, 0, 10);
+		} else break;
 	}
 
 	/* Fix the y value in an appropriate range */
@@ -258,12 +225,12 @@ unsigned char handle_mouse(int mcf, int mmf, int* x_ret, int* y_ret, unsigned ch
 		if (y>MY_MAX)y=MY_MAX;
 		if (y<MY_MIN)y=MY_MIN;
 
-		y = static_cast<float>(y-MY_MIN)/(MY_MAX-MY_MIN)*TARGET_Y;
+		y = static_cast<float>(y-MY_MIN)/(MY_MAX-MY_MIN)*height;
 		if (y>7) *y_ret = y;
 	} else if (y_flag) {
-		*y_ret += y;
+		*y_ret += y*SPEED;
 
-		if (*y_ret>TARGET_Y)*y_ret=TARGET_Y;
+		if (*y_ret>height)*y_ret=height;
 		if (*y_ret<0)*y_ret=0;
 	}
 
@@ -272,12 +239,12 @@ unsigned char handle_mouse(int mcf, int mmf, int* x_ret, int* y_ret, unsigned ch
 		if (x>MX_MAX)x=MX_MAX;
 		if (x<MX_MIN)x=MX_MIN;
 
-		x = static_cast<float>(x-MX_MIN)/(MX_MAX-MX_MIN)*TARGET_X;
+		x = static_cast<float>(x-MX_MIN)/(MX_MAX-MX_MIN)*width;
 		if (x>11) *x_ret = x;
 	} else if (x_flag) {
-		*x_ret += x;
+		*x_ret += x*SPEED;
 
-		if (*x_ret>TARGET_X)*x_ret=TARGET_X;
+		if (*x_ret>width)*x_ret=width;
 		if (*x_ret<0)*x_ret=0;
 	}
 

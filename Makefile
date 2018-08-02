@@ -102,8 +102,17 @@ cross_compile:
 		${CXX} -o final/uxmux main.o -s -v -nodefaultlibs -lc -lm -ldl -lstdc++ -lgcc_s -Wl,-t,-static -Llib/litehtml/final -llitehtml -L${FREETYPE_DIR}/lib -lfreetype -L${PNG_DIR}/lib -lpng16 -L${ZLIB_DIR}/lib -lz ; \
 		cp lib/litehtml/final/include/master.css final/ ; \
 	else \
-		echo "FAILURE: Did you set up the cross-compiling toolchain?" ; \
+		echo "FAILURE: Did you change BASE_DIR and set up the cross-compiling toolchain?" ; \
 	fi
+
+cross_extra:
+	@if [ -d "final/" ] ; then : ; \
+	else \
+		mkdir final/ ; \
+	fi
+	@${CC} -fpie -c extra.c -o extra.o
+	@${CC} -o final/extra.elf -Wl,-pie,-E extra.o
+	@if [ -f extra.o ] ; then rm extra.o ; fi
 
 clean_cross:
 	@if [ -d final/ ] ; then rm -r final/ ; fi

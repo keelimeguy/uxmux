@@ -109,6 +109,8 @@ public:
 	// uint32_t* get_back_buffer();
 	// std::string get_directory();
 	// std::string get_font_directory();
+	// int get_width();
+	// int get_height();
 	// int get_x_scroll();
 	// int get_y_scroll();
 
@@ -586,6 +588,8 @@ public:
 	uint32_t* get_back_buffer() { return m_back_buffer; }
 	std::string get_directory() { return m_directory; }
 	std::string get_font_directory() { return m_font_directory; }
+	int get_width() { return static_cast<int>(m_vinfo->xres); }
+	int get_height() { return static_cast<int>(m_vinfo->yres); }
 	int get_x_scroll() { return x_scroll; }
 	int get_y_scroll() { return y_scroll; }
 

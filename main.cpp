@@ -75,14 +75,14 @@ int main(int argc, char *argv[]) {
 		if (mcf && mmf) { // If mouse loading was successful
 			printf("Right click screen to start. (Then again to exit.)\n");
 
-			unsigned char val = handle_mouse(mcf, mmf, &x, &y, 0);
+			unsigned char val = handle_mouse(mcf, mmf, &x, &y, 0, 1, 1);
 			/* Read mouse until any click value is found */
 			while (!(val & MOUSE_ANY_CLICK))
-				val = handle_mouse(mcf, mmf, &x, &y, 0);
+				val = handle_mouse(mcf, mmf, &x, &y, 0, 1, 1);
 
 			/* Read mouse until right click or empty value is found */
 			while ((val & MOUSE_RIGHT_CLICK) || !val)
-				val = handle_mouse(mcf, mmf, &x, &y, 0);
+				val = handle_mouse(mcf, mmf, &x, &y, 0, 1, 1);
 
 		} else { // Else use enter key to control program
 			printf("Press enter to start. (Then again to exit.)\n");
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
 			render(hdc, doc, painter, &vinfo, &finfo, hdcMouse, x, y, click_ie, redraw);
 
 			/* Read mouse info */
-			click_ie = handle_mouse(mcf, mmf, &x, &y, click_ie);
+			click_ie = handle_mouse(mcf, mmf, &x, &y, click_ie, painter->get_width(), painter->get_height());
 
 			/* Check if new page was loaded */
 			if (painter->check_new_page()) {

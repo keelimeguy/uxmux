@@ -1,6 +1,8 @@
-# liteHTML_fb:
+# uxmux:
 
-### Keelin:
+An html renderer for the framebuffer based on litehtml, with special support for running external scripts.
+
+### Info:
 
 Tested on linux (4.9.0-kali4-amd64)           <br/>
 gcc version 6.3.0 20170516 (Debian 6.3.0-18)  <br/>
@@ -25,3 +27,8 @@ libpng version 1.6.28                         <br/>
 #### Cross-compiling:
 1. Cross-compile the liteHTML_fb project from "." using `make cross_compile`
 2. Copy the compiled program from "./final" to the target device
+
+If cross-compiling the provided sample:
+
+3. Cross-compile the external .elf (which can be loaded into application using HTML) from "." using `make cross_extra`
+4. Copy the resulting "./extra.elf" file and the "./sample/" directory to the target device
